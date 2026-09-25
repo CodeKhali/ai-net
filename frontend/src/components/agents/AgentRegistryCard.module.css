@@ -1,0 +1,279 @@
+/* AgentRegistryCard.module.css */
+
+/* ── Card container ─────────────────────────────────────────────────────────── */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--surface-glass-subtle, rgba(255, 255, 255, 0.03));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  min-width: 0;
+}
+
+.card:hover {
+  border-color: var(--accent, #3b82f6);
+  box-shadow: 0 4px 24px rgba(59, 130, 246, 0.12);
+  transform: translateY(-2px);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nameGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg, 10px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--surface-glass-subtle, rgba(148, 163, 184, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent, #3b82f6);
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main, var(--text-primary));
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.agentId {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  color: var(--text-muted, #64748b);
+  background: var(--surface-glass-subtle, rgba(148, 163, 184, 0.1));
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Status badge ───────────────────────────────────────────────────────────── */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.statusOnline {
+  background: rgba(52, 211, 153, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.statusOffline {
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--text-muted, #64748b);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusOnline .statusDot {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.statusOffline .statusDot {
+  background: var(--text-muted, #64748b);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Capability pills ───────────────────────────────────────────────────────── */
+.capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.pill--blue {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.pill--yellow {
+  background: rgba(251, 191, 36, 0.15);
+  color: #f59e0b;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.pill--green {
+  background: rgba(52, 211, 153, 0.15);
+  color: #10b981;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.pill--purple {
+  background: rgba(192, 132, 252, 0.15);
+  color: #a78bfa;
+  border-color: rgba(192, 132, 252, 0.3);
+}
+
+.pill--red {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.pill--orange {
+  background: rgba(251, 146, 60, 0.15);
+  color: #fb923c;
+  border-color: rgba(251, 146, 60, 0.3);
+}
+
+.pill--default {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted, #64748b);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.noCaps {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+  font-style: italic;
+}
+
+/* ── Metrics row ────────────────────────────────────────────────────────────── */
+.metrics {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #64748b);
+}
+
+.metricValue {
+  font-size: 0.9rem;
+  color: var(--text-main, var(--text-primary));
+}
+
+.xlmUnit {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  font-weight: 400;
+}
+
+/* ── Reputation stars ───────────────────────────────────────────────────────── */
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.starFilled {
+  color: #f59e0b;
+  fill: #f59e0b;
+}
+
+.starEmpty {
+  color: var(--border-color, #e2e8f0);
+  fill: none;
+}
+
+.reputationValue {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Hire button ────────────────────────────────────────────────────────────── */
+.hireButton {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-lg, 10px);
+  border: none;
+  background: var(--accent, #3b82f6);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+  margin-top: auto;
+}
+
+.hireButton:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.hireButton:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.hireButton:focus-visible {
+  outline: 2px solid var(--accent, #3b82f6);
+  outline-offset: 2px;
+}
+
+.hireButtonDisabled {
+  background: var(--text-muted, #64748b);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
