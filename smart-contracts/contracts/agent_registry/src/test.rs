@@ -2165,7 +2165,7 @@ fn test_migrate_agent_index_moves_legacy_entries_to_paged_keys() {
     });
 
     assert_eq!(client.registration_sequence(), 1);
-    assert_eq!(client.migrate_agent_index(&None, &Some(1)).unwrap(), None);
+    assert_eq!(client.migrate_agent_index(&None, &Some(1)), None);
     assert_eq!(client.get_agents(&None, &Some(1)).agents.len(), 1);
 
     env.as_contract(&contract_id, || {
