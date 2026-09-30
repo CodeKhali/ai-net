@@ -1,0 +1,28 @@
+# cargo-mutants configuration for ai-net smart contracts
+# Run with: cargo mutants -p agent_registry
+# Docs: https://mutants.rs/
+
+# Exclude test files from mutation
+exclude_globs = [
+  "contracts/*/src/test.rs",
+  "contracts/*/src/test_*.rs",
+  "contracts/*/src/*_tests.rs",
+  "contracts/*/src/upgrade_tests.rs",
+  "contracts/*/src/audit_tests.rs",
+  "contracts/*/src/bridge_tests.rs",
+  "contracts/*/src/property_tests.rs",
+  "contracts/*/src/test_multisig.rs",
+  "contracts/*/src/pagination_tests.rs",
+  "contracts/*/tests/**/*.rs",
+]
+
+# Mutate every contract's production Rust sources.
+include_globs = [
+  "contracts/*/src/**/*.rs",
+]
+
+# Test timeout per mutant (seconds)
+timeout_multiplier = 3.0
+
+# Minimum score (informational — enforced via CI threshold check)
+# A score below 70% will cause the CI step to fail with a custom message.
