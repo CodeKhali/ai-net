@@ -119,6 +119,8 @@ pub const SLA_BONUS_REPUTATION_BOOST: u32 = 5;
 pub const DEFAULT_PAGE_SIZE: u32 = 20;
 /// Maximum upper bound on page size to guarantee execution within one ledger footprint budget.
 pub const MAX_PAGE_SIZE: u32 = 50;
+/// Number of registration indexes stored in each paginated index-key group.
+pub const AGENT_INDEX_PAGE_CAPACITY: u32 = MAX_PAGE_SIZE;
 
 /// Billing period applied when `create_subscription` is called with `0` (30 days).
 pub const DEFAULT_SUBSCRIPTION_PERIOD_SECS: u64 = 2_592_000;
@@ -278,8 +280,10 @@ pub enum DataKey {
     // SLA keys
     SlaViolation(Symbol, u64),
     SlaViolationCount(Symbol),
-    // Pagination keys (issue #339)
+    // Legacy pagination key, retained while deployments migrate to paged keys.
     AgentByIndex(u32),
+    // Bounded index entry addressed by (page index, position within page).
+    AgentByPage(u32, u32),
     RegistrationSequence,
     // Cross-chain bridging keys (issue #259)
     /// Bridge proof for an agent on one target chain.
@@ -356,6 +360,25 @@ fn get_registration_sequence(env: &Env) -> u32 {
         .instance()
         .get(&DataKey::RegistrationSequence)
         .unwrap_or(0)
+}
+
+fn agent_page_location(index: u32) -> (u32, u32) {
+    (
+        index / AGENT_INDEX_PAGE_CAPACITY,
+        index % AGENT_INDEX_PAGE_CAPACITY,
+    )
+}
+
+fn get_agent_id_at_index(env: &Env, index: u32) -> Option<Symbol> {
+    let (page_index, position) = agent_page_location(index);
+    env.storage()
+        .persistent()
+        .get(&DataKey::AgentByPage(page_index, position))
+        .or_else(|| {
+            env.storage()
+                .persistent()
+                .get(&DataKey::AgentByIndex(index))
+        })
 }
 
 fn get_capability_index(env: &Env, capability: &Symbol) -> Vec<Symbol> {
@@ -1059,7 +1082,8 @@ impl AgentRegistryContract {
         extend_ttl_for_existing_key(&env, &agent_key);
 
         let seq = get_registration_sequence(&env);
-        let index_key = DataKey::AgentByIndex(seq);
+        let (page_index, position) = agent_page_location(seq);
+        let index_key = DataKey::AgentByPage(page_index, position);
         env.storage().persistent().set(&index_key, &record.id);
         extend_ttl_for_existing_key(&env, &index_key);
         env.storage()
@@ -1250,7 +1274,8 @@ impl AgentRegistryContract {
         for i in 0..agents.len() {
             let record = agents.get(i).unwrap();
             let agent_key = DataKey::Agent(record.id.clone());
-            let index_key = DataKey::AgentByIndex(seq);
+            let (page_index, position) = agent_page_location(seq);
+            let index_key = DataKey::AgentByPage(page_index, position);
 
             let mut cap_ids = if let Some(ids) =
                 updated_cap_indexes.get(record.capability.clone())
@@ -1363,11 +1388,11 @@ impl AgentRegistryContract {
 
         let mut agents = Vec::new(&env);
         let mut current_idx = start_cursor;
+        let mut scanned = 0u32;
         let mut ttl_keys: Vec<DataKey> = Vec::new(&env);
 
-        while current_idx < total_registered && agents.len() < effective_limit {
-            let index_key = DataKey::AgentByIndex(current_idx);
-            if let Some(agent_id) = env.storage().persistent().get::<_, Symbol>(&index_key) {
+        while current_idx < total_registered && scanned < effective_limit {
+            if let Some(agent_id) = get_agent_id_at_index(&env, current_idx) {
                 let agent_key = DataKey::Agent(agent_id);
                 if let Some(record) = env.storage().persistent().get::<_, AgentRecord>(&agent_key) {
                     ttl_keys.push_back(agent_key);
@@ -1375,6 +1400,7 @@ impl AgentRegistryContract {
                 }
             }
             current_idx += 1;
+            scanned += 1;
         }
 
         extend_ttl_batch_existing(&env, &ttl_keys);
@@ -1390,6 +1416,41 @@ impl AgentRegistryContract {
             next_cursor,
             total_count: total_active,
         }
+    }
+
+    /// Migrate legacy sequential index keys to bounded `(page, position)` keys.
+    /// The cursor and capped limit make each invocation independent of registry size.
+    pub fn migrate_agent_index(
+        env: Env,
+        cursor: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<Option<u32>, Error> {
+        require_admin(&env)?;
+
+        let total_registered = get_registration_sequence(&env);
+        let start = cursor.unwrap_or(0).min(total_registered);
+        let requested_limit = limit.unwrap_or(DEFAULT_PAGE_SIZE);
+        let batch_size = if requested_limit == 0 {
+            DEFAULT_PAGE_SIZE
+        } else {
+            requested_limit.min(MAX_PAGE_SIZE)
+        };
+        let end = start.saturating_add(batch_size).min(total_registered);
+
+        for index in start..end {
+            let legacy_key = DataKey::AgentByIndex(index);
+            if let Some(agent_id) = env.storage().persistent().get::<_, Symbol>(&legacy_key) {
+                let (page_index, position) = agent_page_location(index);
+                let page_key = DataKey::AgentByPage(page_index, position);
+                if !env.storage().persistent().has(&page_key) {
+                    env.storage().persistent().set(&page_key, &agent_id);
+                    extend_ttl_for_existing_key(&env, &page_key);
+                }
+                env.storage().persistent().remove(&legacy_key);
+            }
+        }
+
+        Ok(if end < total_registered { Some(end) } else { None })
     }
 
     /// Discover and rank agents matching multi-criteria criteria:
@@ -2160,6 +2221,11 @@ impl AgentRegistryContract {
     /// Read current total agent count.
     pub fn total_agents(env: Env) -> u32 {
         get_total_agents(&env)
+    }
+
+    /// Read the number of registration slots, including deregistered entries.
+    pub fn registration_sequence(env: Env) -> u32 {
+        get_registration_sequence(&env)
     }
 
     /// Read storage limits configuration.
