@@ -2121,6 +2121,66 @@ fn test_get_agents_stable_boundaries_under_deregistration() {
 }
 
 #[test]
+fn test_get_agents_bounds_scans_across_deregistered_entries() {
+    let (env, client) = setup();
+    let owner = Address::generate(&env);
+
+    client.register_agent(&make_record(&env, "agent_1", "code", owner.clone()));
+    client.register_agent(&make_record(&env, "agent_2", "code", owner.clone()));
+    client.register_agent(&make_record(&env, "agent_3", "code", owner.clone()));
+    client.register_agent(&make_record(&env, "agent_4", "code", owner));
+
+    client.deregister_agent(&Symbol::new(&env, "agent_1"));
+    client.deregister_agent(&Symbol::new(&env, "agent_2"));
+
+    let first_page = client.get_agents(&None, &Some(2));
+    assert!(first_page.agents.is_empty());
+    assert_eq!(first_page.next_cursor, Some(2));
+
+    let second_page = client.get_agents(&first_page.next_cursor, &Some(2));
+    assert_eq!(second_page.agents.len(), 2);
+    assert_eq!(second_page.next_cursor, None);
+}
+
+#[test]
+fn test_migrate_agent_index_moves_legacy_entries_to_paged_keys() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(AgentRegistryContract, ());
+    let client = AgentRegistryContractClient::new(&env, &contract_id);
+    let admin = Address::generate(&env);
+    let owner = Address::generate(&env);
+
+    client.initialize(&admin);
+    client.register_agent(&make_record(&env, "agent_1", "code", owner));
+
+    env.as_contract(&contract_id, || {
+        env.storage()
+            .persistent()
+            .remove(&DataKey::AgentByPage(0, 0));
+        env.storage().persistent().set(
+            &DataKey::AgentByIndex(0),
+            &Symbol::new(&env, "agent_1"),
+        );
+    });
+
+    assert_eq!(client.registration_sequence(), 1);
+    assert_eq!(client.migrate_agent_index(&None, &Some(1)), None);
+    assert_eq!(client.get_agents(&None, &Some(1)).agents.len(), 1);
+
+    env.as_contract(&contract_id, || {
+        assert!(env
+            .storage()
+            .persistent()
+            .has(&DataKey::AgentByPage(0, 0)));
+        assert!(!env
+            .storage()
+            .persistent()
+            .has(&DataKey::AgentByIndex(0)));
+    });
+}
+
+#[test]
 fn test_get_agents_batch_registered_pagination() {
     let (env, client) = setup();
     let owner = Address::generate(&env);
