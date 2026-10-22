@@ -8,6 +8,7 @@ import { PaymentTimeline } from '../components/dashboard/PaymentTimeline';
 import { Skeleton, SkeletonText } from '../components/common/Skeleton';
 import { EmptyState } from '../components/common/EmptyState';
 import { TaskFailedIllustration } from '../components/common/illustrations';
+import { useBreadcrumbLabel } from '../components/layout/Breadcrumb';
 import { AlertCircle, CheckCircle2, Play, RefreshCw } from 'lucide-react';
 
 const CustomNode: React.FC<{ id: string; data: { label: string; status: string } }> = ({ id, data }) => {
@@ -88,6 +89,7 @@ const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { task, loading, error, wsStatus, nodes, payments, outputs, refetch } = useTaskMonitor(id);
+  useBreadcrumbLabel(task?.prompt || `Task ${id ?? ''}`);
 
   // Check if any node is failed
   const failedNode = useMemo(() => {
