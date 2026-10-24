@@ -27,13 +27,22 @@ export const useNodeState = (_taskId: string) => {
                 }
               : n,
           );
+        }
 
         case 'node_completed': {
           const payload = event.payload as any;
-          return prev.map(n => 
-            n.nodeId === event.nodeId 
-              ? { ...n, status: 'completed', result: payload } 
-              : n
+          return prev.map(n =>
+            n.nodeId === event.nodeId
+              ? {
+                  ...n,
+                  status: 'completed',
+                  result: {
+                    ...(typeof payload === 'object' && payload !== null ? payload : {}),
+                    completedAt: event.timestamp,
+                    startedAt: (n as any).startedAt ?? undefined,
+                  },
+                }
+              : n,
           );
         }
 
@@ -122,6 +131,13 @@ export const useNodeState = (_taskId: string) => {
 
   const initializeNodes = useCallback((initialNodes: DAGNode[]) => {
     setNodes(initialNodes);
+    // If any node is already running or completed, seed the pipeline start time
+    const firstActive = initialNodes.find(
+      n => n.status === 'running' || n.status === 'completed',
+    );
+    if (firstActive) {
+      setPipelineStartedAt(s => s ?? new Date().toISOString());
+    }
   }, []);
 
   const getNodeById = useCallback(
